@@ -84,7 +84,7 @@ public class ImageListAdapter extends BaseAdapter {
 		final ImageItem imageItem = mItems.get(position);
 		
 		holder.thumbnail.setImageBitmap(imageItem.getThumbnail());
-		holder.fileName.setText(imageItem.getFileName());
+		holder.fileName.setText(imageItem.getDispFileName());
        
 		return convertView;
 	}

@@ -35,6 +35,8 @@ public class AlarmNotificationReceiver extends BroadcastReceiver {
 	@Override
 	public void onReceive(Context context, Intent intent) {
 
+		// When the activity is already running, this starts another instance of it.
+		// TODO: Should navigate to the running activity if it's already running.
 		// The Intent to be used when the user clicks on the Notification View
 		mNotificationIntent = new Intent(context, MainActivity.class);
 

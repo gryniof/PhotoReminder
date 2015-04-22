@@ -1,12 +1,11 @@
 package coursera.vortex.dailyselfie;
 
-import java.io.Serializable;
 import android.graphics.Bitmap;
 
-public class ImageItem implements Serializable {
+public class ImageItem {
 	
 	// http://stackoverflow.com/questions/285793/what-is-a-serialversionuid-and-why-should-i-use-it
-	private static final long serialVersionUID = 4460694759015517444L;
+	//private static final long serialVersionUID = 4460694759015517444L;
 	
 	private String mFilePath;
 	private Bitmap mThumbnail;
@@ -16,17 +15,33 @@ public class ImageItem implements Serializable {
 		mThumbnail = thumbnail;
 	}
 	
+	public String getFilePath() {
+		
+		return mFilePath;
+	}
+	
 	public Bitmap getThumbnail() {
 		
 		return mThumbnail;
 	}
 	
 	public void setThumbnail(Bitmap thumbnail) {
+		
 		mThumbnail = thumbnail;
 	}
 	
-	public String getFileName() {
+	//TODO: add error checking
+	public String getDispFileName() {
 		
-		return mFilePath;
+		String fileName = "default"; 
+		
+		if (mFilePath != null) {
+			
+			String[] levelSplit = mFilePath.split("/");
+			String[] fileNameSplit = levelSplit[levelSplit.length-1].split("_");
+			fileName = fileNameSplit[1] + "_" + fileNameSplit[2];
+		}
+		
+		return fileName;
 	}
 }

@@ -42,9 +42,11 @@ public class MainActivity extends ActionBarActivity {
 
 	static final int REQUEST_TAKE_PHOTO = 1;
 	private static final String FILE_NAME = "SeflieImagesFilePaths.txt";
+	private static final String SAVED_PHOTO_PATH = "SavedPhotoPath";
 	private static final String TAG = "MainActivity";
 	
-	private String mAbsolutePhotoPath;
+	private static String mAbsolutePhotoPath;
+	private static String mSavedPhotoPath;
 	
 	private ImageView mImageView;
 	private static ImageListAdapter mAdapter;
@@ -59,6 +61,10 @@ public class MainActivity extends ActionBarActivity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
+		if (savedInstanceState != null) {
+			mSavedPhotoPath = savedInstanceState.getString(SAVED_PHOTO_PATH);
+		}
+		
 		// Create a new TodoListAdapter for this ListActivity's ListView
 		// TODO: figure out if getApplicationContext() is appropriate for this
 //		mAdapter = new ImageListAdapter(getApplicationContext());
@@ -72,8 +78,7 @@ public class MainActivity extends ActionBarActivity {
 			ImageListFragment list = new ImageListFragment();  
 			fm.beginTransaction().add(android.R.id.content, list).commit();  
         }
-        
-        /* TODO: ALARM, comment back in when the list is working 
+         
 		// Get the AlarmManager Service
 		mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
 		
@@ -88,13 +93,18 @@ public class MainActivity extends ActionBarActivity {
 				SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
 				AlarmManager.INTERVAL_FIFTEEN_MINUTES,
 				mNotificationReceiverPendingIntent);
-		*/
         
     	// Cancel all alarms using mNotificationReceiverPendingIntent
     	// mAlarmManager.cancel(mNotificationReceiverPendingIntent);
     	// Cancel all alarms using mLoggerReceiverPendingIntent
     	// mAlarmManager.cancel(mLoggerReceiverPendingIntent);
 	}	
+	
+	@Override
+	public void onSaveInstanceState(Bundle outState) {
+	   super.onSaveInstanceState(outState);
+	   outState.putString(SAVED_PHOTO_PATH, mAbsolutePhotoPath);
+	}
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -135,25 +145,11 @@ public class MainActivity extends ActionBarActivity {
 	        
 	        // Continue only if the File was successfully created
 	        if (photoFile != null) {
-	        
+	        	
+	        	Log.i(TAG, "Put extra param: " + Uri.fromFile(photoFile));
 	            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
 	            startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
 	        }
-	    }
-	}
-	
-	// http://developer.android.com/training/camera/photobasics.html#TaskPhotoView
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		
-	    if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
-	    	
-	        Log.i(TAG, "Activity RESULT_OK.");
-    		ImageItem newItem = new ImageItem(mAbsolutePhotoPath, setPic(mAbsolutePhotoPath));
-	        
-	    	if (newItem != null) {
-	    		mAdapter.add(newItem);
-	    	}
 	    }
 	}
 	
@@ -169,22 +165,49 @@ public class MainActivity extends ActionBarActivity {
 
 	    // Save a file: path for use with ACTION_VIEW intents
 	    mAbsolutePhotoPath = image.getAbsolutePath();
+	    
 	    return image;
 	}
 	
+	// http://developer.android.com/training/camera/photobasics.html#TaskPhotoView
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		
+	    if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+	        
+	    	//This is a bit of a hack forced by a configuration change after returning
+	    	//from the camera app. TODO: Move this to onResume() somehow. loadItems called twice
+	    	//is asking for trouble.
+	    	if (mAbsolutePhotoPath == null) {
+	    		
+	    		Log.i(TAG, "Absolute path is NULL. Saved path: " + mSavedPhotoPath);
+	    		
+	    		mAbsolutePhotoPath = mSavedPhotoPath;
+	    		loadItems();
+	    	}
+	        Bitmap bitmap = setPic(mAbsolutePhotoPath); 
+	        ImageItem newItem = new ImageItem(mAbsolutePhotoPath, bitmap);
+	        
+	        mAdapter.add(newItem);
+	        
+	    } else {
+	    	Log.i(TAG, "Camera activity did NOT return correctly.");
+	    }
+	    
+	}
+	
 	// http://developer.android.com/training/camera/photobasics.html#TaskScalePhoto
 	private Bitmap setPic(String absolutePhotoPath) {
-	    // Get the dimensions of the View
-	    int targetW = 50; //mImageView.getWidth();
-	    int targetH = 50; //mImageView.getHeight();
+	    // TODO: get the dimensions of the View
+	    int targetW = 70; //mImageView.getWidth();
+	    int targetH = 70; //mImageView.getHeight();
 	    Bitmap bitmap = null;
 	    
-	    try {
 	    // Get the dimensions of the bitmap
 	    BitmapFactory.Options bmOptions = new BitmapFactory.Options();
 	    bmOptions.inJustDecodeBounds = true;
 	    BitmapFactory.decodeFile(absolutePhotoPath, bmOptions);
+	    
 	    int photoW = bmOptions.outWidth;
 	    int photoH = bmOptions.outHeight;
 
@@ -194,15 +217,12 @@ public class MainActivity extends ActionBarActivity {
 	    // Decode the image file into a Bitmap sized to fill the View
 	    bmOptions.inJustDecodeBounds = false;
 	    bmOptions.inSampleSize = scaleFactor;
-	    //bmOptions.inBitmap TODO: figure out this line and why BitmapFactory is called twice in this fun.
+	    //bmOptions.inBitmap TODO: figure out this line and why BM.decodeFile is called twice in this fun.
 
-	    bitmap = BitmapFactory.decodeFile(absolutePhotoPath, bmOptions);
-	    
-	    //mImageView.setImageBitmap(bitmap);
-	    } catch (NullPointerException e) {
-	    	Log.w(TAG, "Unable to decode steam.");
-	    	bitmap = null;
+	    if ((bitmap = BitmapFactory.decodeFile(absolutePhotoPath, bmOptions)) == null) {
+	    	Log.i(TAG, "File could not be decoded.");
 	    }
+	    
 	    return bitmap;
 	}
 	
@@ -251,7 +271,7 @@ public class MainActivity extends ActionBarActivity {
 
 			for (int idx = 0; idx < mAdapter.getCount(); idx++) {
 				
-				writer.println(((ImageItem) mAdapter.getItem(idx)).getFileName());
+				writer.println(((ImageItem) mAdapter.getItem(idx)).getFilePath());
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -279,7 +299,7 @@ public class MainActivity extends ActionBarActivity {
     		// Load saved ImageItems, if necessary
     		if (mAdapter.getCount() == 0) {
     			
-    			Log.i(TAG, "onResume(). Number of items in adapter: " + mAdapter.getCount());
+    			Log.i(TAG, "onResume(). Load items in adapter: " + mAdapter.getCount());
     			((MainActivity) getActivity()).loadItems();
     		}
     	}
@@ -288,13 +308,13 @@ public class MainActivity extends ActionBarActivity {
     	public void onPause() {
     		super.onPause();
 
-    		Log.i(TAG, "onPause(). Saving image items.");
+    		Log.i(TAG, "onPause(). Save items in adapter: " + mAdapter.getCount());
     		((MainActivity) getActivity()).saveItems();
     	}
         
         public void onListItemClick(ListView lv, View v, int position, long id) {
     		
-    		String filePath = ((ImageItem) getListView().getItemAtPosition(position)).getFileName();
+    		String filePath = ((ImageItem) getListView().getItemAtPosition(position)).getFilePath();
     		Log.i(TAG, "Image item selected: " + filePath);
     		
     		Intent intentOpenLargeImage = new Intent(getActivity(), LargeImage.class);
