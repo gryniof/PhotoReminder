@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Daily Selfie</string>
+    <string name="camera_icon">Camera</string>
+    <string name="camera_image">Image taken from phone\'s camera</string>
+    <string name="file_path">Image file path</string>
+
+</resources>
