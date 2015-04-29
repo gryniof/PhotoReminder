@@ -9,19 +9,10 @@
          <!-- android:paddingLeft="8dp"
          android:paddingRight="8dp" -->
 
-<!--
-     <fragment
-        android:id="@+id/listFragment"
-        android:layout_weight="1"
-        android:layout_height="match_parent"
-        class=".ImageListFragment" >
-         android:layout_width="0dp" -->
-        
         <ListView android:id="@android:id/list"
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:drawSelectorOnTop="false"/>
         	<!-- android:layout_weight="1" -->
         
-    <!-- </fragment>  --> 
 </LinearLayout>

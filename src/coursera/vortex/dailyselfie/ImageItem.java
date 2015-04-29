@@ -5,8 +5,6 @@ import android.graphics.Bitmap;
 public class ImageItem {
 	
 	// http://stackoverflow.com/questions/285793/what-is-a-serialversionuid-and-why-should-i-use-it
-	//private static final long serialVersionUID = 4460694759015517444L;
-	
 	private String mFilePath;
 	private Bitmap mThumbnail;
 
