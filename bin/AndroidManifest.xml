@@ -33,6 +33,11 @@
             android:label="@string/app_name" >
         </activity>
         
+        <activity
+            android:name="coursera.vortex.dailyselfie.SettingsActivity"
+            android:label="@string/app_name" >
+        </activity>
+        
         <receiver android:name=".AlarmNotificationReceiver" >
         </receiver>
     </application>

@@ -10,29 +10,32 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import coursera.vortex.dailyselfie.SettingsActivity.Frequency;
 import android.support.v7.app.ActionBarActivity;
 import android.annotation.SuppressLint;
-import android.app.ListActivity;
-import android.content.Context;
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.provider.MediaStore.Images.Media;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.app.AlarmManager;
+import android.app.DialogFragment;
+import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ListFragment;
 import android.app.PendingIntent;
@@ -40,10 +43,18 @@ import android.os.SystemClock;
 
 public class MainActivity extends ActionBarActivity {
 
-	static final int REQUEST_TAKE_PHOTO = 1;
-	private static final String FILE_NAME = "SeflieImagesFilePaths.txt";
-	private static final String SAVED_PHOTO_PATH = "SavedPhotoPath";
 	private static final String TAG = "MainActivity";
+	
+	static final int REQUEST_TAKE_PHOTO = 1;
+	static final int REQUEST_CHANGE_SETTINGS = 2;
+	
+	public static final String IMAGE_PATHS_FILE = "SeflieImagesFilePaths.txt";
+	public static final String SETTINGS_FILE = "DailySelfieSettings.txt";
+	
+	private static final String SAVED_PHOTO_PATH = "SavedPhotoPath";
+	
+	private static final long INITIAL_ALARM_DELAY = 5 * 1000L;
+	private static final long INTERVAL_ONE_MINUTE = 60 * 1000L;
 	
 	private static String mAbsolutePhotoPath;
 	private static String mSavedPhotoPath;
@@ -52,9 +63,10 @@ public class MainActivity extends ActionBarActivity {
 	private static ImageListAdapter mAdapter;
 	
 	private AlarmManager mAlarmManager;
-	private Intent mNotificationReceiverIntent; //, mLoggerReceiverIntent;
-	private PendingIntent mNotificationReceiverPendingIntent; //, mLoggerReceiverPendingIntent;
-	private static final long INITIAL_ALARM_DELAY = 20 * 1000L;
+	private Intent mNotificationReceiverIntent;
+	private PendingIntent mNotificationReceiverPendingIntent;
+	
+	private Frequency mSavedFrequency;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -76,26 +88,6 @@ public class MainActivity extends ActionBarActivity {
 			ImageListFragment list = new ImageListFragment();  
 			fm.beginTransaction().add(android.R.id.content, list).commit();  
         }
-         
-		// Get the AlarmManager Service
-		mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-		
-		// Create an Intent to broadcast to the AlarmNotificationReceiver
-		mNotificationReceiverIntent = new Intent(MainActivity.this, AlarmNotificationReceiver.class);
-		
-		// Create an PendingIntent that holds the NotificationReceiverIntent
-		mNotificationReceiverPendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, mNotificationReceiverIntent, 0);
-		
-		// Set repeating alarm
-		mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
-				SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
-				AlarmManager.INTERVAL_FIFTEEN_MINUTES,
-				mNotificationReceiverPendingIntent);
-        
-    	// Cancel all alarms using mNotificationReceiverPendingIntent
-    	// mAlarmManager.cancel(mNotificationReceiverPendingIntent);
-    	// Cancel all alarms using mLoggerReceiverPendingIntent
-    	// mAlarmManager.cancel(mLoggerReceiverPendingIntent);
 	}
 	
 	@Override
@@ -126,13 +118,129 @@ public class MainActivity extends ActionBarActivity {
 		int id = item.getItemId();
 		
 		if (id == R.id.action_camera) {
+		
 			dispatchTakePictureIntent();
-			
+			return true;
+		} else if (id == R.id.settings) {
+			openSettings();
 			return true;
 		}
+		
 		return super.onOptionsItemSelected(item);
 	}
+	
+	private void openSettings() {
+		loadSettings();
 		
+		Log.i(TAG, "Loaded settings.");
+		
+		Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+		settingsIntent.putExtra("freq", mSavedFrequency.toString());
+		startActivityForResult(settingsIntent, REQUEST_CHANGE_SETTINGS);
+	}
+	
+	private void setSelfieRemainder(Frequency freq) {
+		// Get the AlarmManager Service
+		mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+		// Create an Intent to broadcast to the AlarmNotificationReceiver
+		mNotificationReceiverIntent = new Intent(MainActivity.this, AlarmNotificationReceiver.class);
+		
+		// Create an PendingIntent that holds the NotificationReceiverIntent
+		mNotificationReceiverPendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, mNotificationReceiverIntent, 0);
+		
+		switch (freq) {
+			case DAILY: {
+
+				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
+						AlarmManager.INTERVAL_DAY,
+						mNotificationReceiverPendingIntent);
+				break;
+			}
+			case HOURLY: {
+				
+				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
+						AlarmManager.INTERVAL_HOUR,
+						mNotificationReceiverPendingIntent);
+				break;
+			}
+			case TEST_1_MIN: {
+				
+				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
+						INTERVAL_ONE_MINUTE,
+						mNotificationReceiverPendingIntent);
+				break;
+			}
+			case OFF: {
+				
+				 // Cancel all alarms using mNotificationReceiverPendingIntent
+		    	 mAlarmManager.cancel(mNotificationReceiverPendingIntent);
+		    	 break;
+			}
+			default: {
+				Log.e(TAG, "Invalid frequency value: " + freq);
+				return;
+			}
+		}
+		
+		saveSettings(freq);
+	}
+	
+	// Load saved settings
+	private void loadSettings() {
+		
+		BufferedReader reader = null;
+		String freq = null;
+		
+		try {
+			FileInputStream fis = openFileInput(SETTINGS_FILE);
+			reader = new BufferedReader(new InputStreamReader(fis));
+
+			if (null != (freq = reader.readLine())) {
+				mSavedFrequency = Frequency.valueOf(freq);
+			} else {
+				mSavedFrequency = Frequency.OFF;
+			}
+			
+		} catch (FileNotFoundException e) {
+			mSavedFrequency = Frequency.OFF;
+			//e.printStackTrace();
+			Log.i(TAG, "loadSettings(), File not found, frequency set to OFF.");
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (null != reader) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	// Save settings to file
+	private void saveSettings(Frequency freq) {
+		Log.i(TAG, "Saving settings: " + freq.toString());
+		
+		PrintWriter writer = null;
+		try {
+			FileOutputStream fos = openFileOutput(SETTINGS_FILE, MODE_PRIVATE);
+			writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(fos)));
+			writer.println(freq.toString());
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (null != writer) {
+				writer.close();
+			}
+		}
+	}
+	
 	// http://developer.android.com/training/camera/photobasics.html#TaskCaptureIntent
 	private void dispatchTakePictureIntent() {
 		Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -165,13 +273,22 @@ public class MainActivity extends ActionBarActivity {
 	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	    String imageFileName = "JPEG_" + timeStamp + "_";
 	    
-	    File storageDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+	    File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)+ File.separator + "DailySelfie" + File.separator);
+	    storageDir.mkdir();
+	    	    
+	    Log.i(TAG, "Path: " + storageDir.getAbsolutePath());
 	    File image = File.createTempFile(imageFileName,  ".jpg", storageDir);
 
 	    // Save a file: path for use with ACTION_VIEW intents
 	    mAbsolutePhotoPath = image.getAbsolutePath();
 	    
 	    return image;
+	}
+	
+	protected static boolean removeImageFile(String filePath) {
+		
+		File file = new File(filePath);
+		return file.delete();
 	}
 	
 	// http://developer.android.com/training/camera/photobasics.html#TaskPhotoView
@@ -181,21 +298,9 @@ public class MainActivity extends ActionBarActivity {
 	    if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
 	        
 	    	// This is a bit of a hack forced by a configuration change after returning
-	    	// from the camera app. TODO: Move this to onResume() somehow. loadItems called twice
-	    	// is asking for trouble.
-	    	// if (mAdapter.getCount() == 0 && !mSavedPhotoPath.equals("default")) {
-	    	
-//*****    	THIS WORKS:
-//	    	if (mAbsolutePhotoPath == null || mAdapter.getCount() == 0) {
-//	    		
-//	    		if (mAbsolutePhotoPath == null) {
-//	    			
-//		    		Log.i(TAG, "Absolute path is NULL. Saved path: " + mSavedPhotoPath);
-//		    		mAbsolutePhotoPath = mSavedPhotoPath;
-//	    		}
-//	    		loadItems();
-//*****	    }
-
+	    	// from the camera app. TODO: loadItems called twice seems like it's asking for trouble.
+	    	// Possible to move this to onResume() somehow? Prolly not cause this is called before onResume(). 
+   	
 	    	if (mAbsolutePhotoPath == null) {
 	    		Log.i(TAG, "Absolute path is NULL. Saved path: " + mSavedPhotoPath);
 	    		mAbsolutePhotoPath = mSavedPhotoPath;
@@ -205,22 +310,27 @@ public class MainActivity extends ActionBarActivity {
 	    		loadItems();
 	    	}
 	    	
-	    	
 	        Bitmap bitmap = setPic(mAbsolutePhotoPath); 
 	        ImageItem newItem = new ImageItem(mAbsolutePhotoPath, bitmap);
 	        
 	        mAdapter.add(newItem);
 	        
+	    } else if (requestCode == REQUEST_CHANGE_SETTINGS && resultCode == RESULT_OK) {
+	    	
+	    	Frequency freq = Frequency.valueOf(data.getStringExtra("freq"));
+	    	setSelfieRemainder(freq);
+	    	
 	    } else {
-	    	Log.i(TAG, "Camera activity did NOT return correctly.");
+	    	Log.i(TAG, "onActivityResult(), resultCode not RESULT_OK.");
 	    }
+	    
 	}
 	
 	// http://developer.android.com/training/camera/photobasics.html#TaskScalePhoto
 	private Bitmap setPic(String absolutePhotoPath) {
 	    // TODO: get the dimensions of the View
-	    int targetW = 70; //mImageView.getWidth();
-	    int targetH = 70; //mImageView.getHeight();
+	    int targetW = 80; //mImageView.getWidth();
+	    int targetH = 80; //mImageView.getHeight();
 	    Bitmap bitmap = null;
 	    
 	    // Get the dimensions of the bitmap
@@ -258,7 +368,7 @@ public class MainActivity extends ActionBarActivity {
 		String filePath = null;
 		
 		try {
-			FileInputStream fis = openFileInput(FILE_NAME);
+			FileInputStream fis = openFileInput(IMAGE_PATHS_FILE);
 			reader = new BufferedReader(new InputStreamReader(fis));
 
 			while (null != (filePath = reader.readLine())) {
@@ -285,7 +395,7 @@ public class MainActivity extends ActionBarActivity {
 	private void saveItems() {
 		PrintWriter writer = null;
 		try {
-			FileOutputStream fos = openFileOutput(FILE_NAME, MODE_PRIVATE);
+			FileOutputStream fos = openFileOutput(IMAGE_PATHS_FILE, MODE_PRIVATE);
 			writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(fos)));
 
 			for (int idx = 0; idx < mAdapter.getCount(); idx++) {
@@ -304,11 +414,42 @@ public class MainActivity extends ActionBarActivity {
 	//Based on: http://stackoverflow.com/questions/20524008/combining-listactivity-and-actionbaractivity
 	public static class ImageListFragment extends ListFragment {
 		
+		static final int DISMISS_VALUE = 1;
+		Fragment f = this;
+		
         public void onActivityCreated(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             
             mAdapter = new ImageListAdapter(getActivity().getApplicationContext());
             setListAdapter(mAdapter);
+            
+            getListView().setOnItemLongClickListener(new OnItemLongClickListener() {
+
+            	//getParentFragment() requires API 17
+                @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+				public boolean onItemLongClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+                	
+                	DialogFragment dialog = DeleteImageItemDialogFragment.newInstance(arg2);                	
+        			dialog.show(getFragmentManager(), "DeleteDialog");
+        			dialog.setTargetFragment(f, DISMISS_VALUE);
+        			
+                    return true;
+                }
+            });
+        }
+        
+        @Override
+        public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        	super.onActivityResult(requestCode, resultCode, data);
+        	
+        	int itemToRemove = data.getIntExtra("numToDelete", -1);
+        	
+        	Log.i(TAG, "Removing item from list: " + itemToRemove);
+        	
+        	//Delete the image file
+        	removeImageFile(((ImageItem) mAdapter.getItem(itemToRemove)).getFilePath());
+        	//Remove the file from the adapter
+        	mAdapter.removeItem(itemToRemove);
         }
         
         @Override
@@ -330,14 +471,15 @@ public class MainActivity extends ActionBarActivity {
     		Log.i(TAG, "onPause(). Save items in adapter: " + mAdapter.getCount());
     		((MainActivity) getActivity()).saveItems();
     	}
-        
+    	
+    	@Override
         public void onListItemClick(ListView lv, View v, int position, long id) {
     		
     		String filePath = ((ImageItem) getListView().getItemAtPosition(position)).getFilePath();
     		Log.i(TAG, "Image item selected: " + filePath);
     		
     		Intent intentOpenLargeImage = new Intent(getActivity(), LargeImageActivity.class);
-    		intentOpenLargeImage.putExtra("savedFilePath", FILE_NAME);
+    		intentOpenLargeImage.putExtra("savedFilePath", IMAGE_PATHS_FILE);
     		intentOpenLargeImage.putExtra("imgPosition", position);
     		startActivity(intentOpenLargeImage);
     	}

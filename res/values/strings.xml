@@ -2,9 +2,18 @@
 <resources>
 
     <string name="app_name">Daily Selfie</string>
-    <string name="camera_icon">Camera</string>
+    <string name="thumbnail_image">Image thumbnail</string>
     <string name="camera_image">Image taken from phone\'s camera</string>
     <string name="large_image">Enlarged selfie image</string>    
     <string name="file_path">Image file path</string>
 
+    <string name="camera_icon">Camera</string>
+    <string name="settings">Settings</string>
+    <string name="reminder_frequency">Selfie Reminder Frequency</string>
+    <string name="freq_daily">Daily, starting now</string>
+    <string name="freq_hourly">Hourly, starting now</string>
+    <string name="freq_minute">Every minute, starting now</string>
+    <string name="freq_off">Off</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="submit_button">Submit</string>
 </resources>

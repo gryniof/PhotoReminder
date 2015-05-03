@@ -21,7 +21,6 @@ public class LargeImagePagerAdapter extends FragmentStatePagerAdapter {
 	
 	private static final String TAG = "LargeImagePagerAdapter";
 	
-	private static final String FILE_NAME = "SeflieImagesFilePaths.txt";
 	private List<ImageItem> mItems = new ArrayList<ImageItem>();
 	private Context mContext;
 	
@@ -66,7 +65,7 @@ public class LargeImagePagerAdapter extends FragmentStatePagerAdapter {
 		String filePath = null;
 		
 		try {
-			FileInputStream fis = mContext.openFileInput(FILE_NAME);
+			FileInputStream fis = mContext.openFileInput(MainActivity.IMAGE_PATHS_FILE);
 			reader = new BufferedReader(new InputStreamReader(fis));
 
 			while (null != (filePath = reader.readLine())) {

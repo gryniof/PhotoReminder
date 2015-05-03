@@ -46,7 +46,7 @@ public class ImageListAdapter extends BaseAdapter {
 
 		return mItems.get(pos);
 	}
-
+	
 	// Get the ID for the ImageItem
 	// In this case it's just the position
 	@Override
@@ -55,6 +55,16 @@ public class ImageListAdapter extends BaseAdapter {
 		return pos;
 	}
 
+	public boolean removeItem(int pos) {
+		try {
+			mItems.remove(pos);
+		} catch (IndexOutOfBoundsException e) {
+			return false;
+		}
+		notifyDataSetChanged();
+		return true;
+	}
+	
     // ViewHolder pattern to make scrolling more efficient
     // http://developer.android.com/training/improving-layouts/smooth-scrolling.html
 	static class ViewHolder {

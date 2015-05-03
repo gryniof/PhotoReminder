@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/ImageItemLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,25 +7,20 @@
 
     <ImageView
         android:id="@+id/thumbnailView"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_alignParentLeft="true" >
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:contentDescription="@string/thumbnail_image" >
     </ImageView>
-	 
-    <!-- android:layout_alignParentCenter="true"  -->
     
     <TextView
         android:id="@+id/fileNameView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true" >
+        android:paddingLeft="30dp"
+        android:paddingStart="30dp"
+        android:layout_centerInParent="true" >
     </TextView>
-
-    <!-- 
-   	 android:layout_alignBaseline="@+id/statusCheckBox" 
-   	 android:layout_marginTop="17dp"
-   	 android:text="@string/done_string"
-     android:layout_alignParentCenter="true"
-    -->
     
-</LinearLayout>
+</RelativeLayout>
