@@ -9,6 +9,8 @@ public class LargeImageActivity extends FragmentActivity {
 
 	private static final String TAG = "LargeImageActivity";
 	
+	private static final String CURRENT_ITEM = "currentItem";
+	
     LargeImagePagerAdapter mLargeImagePagerAdapter;
     ViewPager mViewPager;
     int mImgPosition;
@@ -17,9 +19,9 @@ public class LargeImageActivity extends FragmentActivity {
     	super.onCreate(savedInstanceState);
     	setContentView(R.layout.activity_fullscreen_swipe_view);
     	
-    	if ((mImgPosition = getIntent().getIntExtra("imgPosition", -1)) != -1) {
+    	if ((mImgPosition = getIntent().getIntExtra(MainActivity.IMAGE_POSITION, -1)) != -1) {
     		
-    		Log.i(TAG, "imgPosition: " + mImgPosition);
+    		Log.i(TAG, "Image position: " + mImgPosition);
 			
 			// ViewPager and its adapters use support library
 	    	// fragments, so use getSupportFragmentManager.
@@ -31,7 +33,7 @@ public class LargeImageActivity extends FragmentActivity {
 	    	// Set current item to the saved in the Bundle OR
 	    	// one user selected (passed in the intent)
 	    	if (savedInstanceState != null) {
-	    		mViewPager.setCurrentItem(savedInstanceState.getInt("currentItem"), true);
+	    		mViewPager.setCurrentItem(savedInstanceState.getInt(CURRENT_ITEM), true);
 	    	} else {
 	    		mViewPager.setCurrentItem(mImgPosition, true);
 	    	}
@@ -39,12 +41,12 @@ public class LargeImageActivity extends FragmentActivity {
 		} else {
 			
 			//TODO: Consider displaying an error screen here.
-			Log.e(TAG, "Unable to show large images.");
+			Log.e(TAG, "Unable to show large image at position: " + mImgPosition);
 		}
     }
     
     public void onSaveInstanceState(Bundle savedInstanceState) {
     	super.onSaveInstanceState(savedInstanceState);
-    	savedInstanceState.putInt("currentItem", mViewPager.getCurrentItem());
+    	savedInstanceState.putInt(CURRENT_ITEM, mViewPager.getCurrentItem());
     }
 }

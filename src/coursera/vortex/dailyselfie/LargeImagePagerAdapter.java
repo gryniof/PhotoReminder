@@ -65,7 +65,7 @@ public class LargeImagePagerAdapter extends FragmentStatePagerAdapter {
 		String filePath = null;
 		
 		try {
-			FileInputStream fis = mContext.openFileInput(MainActivity.IMAGE_PATHS_FILE);
+			FileInputStream fis = mContext.openFileInput(ImageUtilities.IMAGE_PATHS_FILE);
 			reader = new BufferedReader(new InputStreamReader(fis));
 
 			while (null != (filePath = reader.readLine())) {

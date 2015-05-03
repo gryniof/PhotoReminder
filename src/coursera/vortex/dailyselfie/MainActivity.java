@@ -1,29 +1,15 @@
 package coursera.vortex.dailyselfie;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
-import coursera.vortex.dailyselfie.SettingsActivity.Frequency;
 import android.support.v7.app.ActionBarActivity;
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
@@ -31,15 +17,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemLongClickListener;
-import android.widget.ImageView;
 import android.widget.ListView;
-import android.app.AlarmManager;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ListFragment;
-import android.app.PendingIntent;
-import android.os.SystemClock;
 
 public class MainActivity extends ActionBarActivity {
 
@@ -48,25 +30,15 @@ public class MainActivity extends ActionBarActivity {
 	static final int REQUEST_TAKE_PHOTO = 1;
 	static final int REQUEST_CHANGE_SETTINGS = 2;
 	
-	public static final String IMAGE_PATHS_FILE = "SeflieImagesFilePaths.txt";
-	public static final String SETTINGS_FILE = "DailySelfieSettings.txt";
+	public static final String IMAGE_POSITION = "imgPosition";
 	
 	private static final String SAVED_PHOTO_PATH = "SavedPhotoPath";
-	
-	private static final long INITIAL_ALARM_DELAY = 5 * 1000L;
-	private static final long INTERVAL_ONE_MINUTE = 60 * 1000L;
 	
 	private static String mAbsolutePhotoPath;
 	private static String mSavedPhotoPath;
 	
-	private ImageView mImageView;
+	//private ImageView mImageView;
 	private static ImageListAdapter mAdapter;
-	
-	private AlarmManager mAlarmManager;
-	private Intent mNotificationReceiverIntent;
-	private PendingIntent mNotificationReceiverPendingIntent;
-	
-	private Frequency mSavedFrequency;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -129,118 +101,6 @@ public class MainActivity extends ActionBarActivity {
 		return super.onOptionsItemSelected(item);
 	}
 	
-	private void openSettings() {
-		loadSettings();
-		
-		Log.i(TAG, "Loaded settings.");
-		
-		Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
-		settingsIntent.putExtra("freq", mSavedFrequency.toString());
-		startActivityForResult(settingsIntent, REQUEST_CHANGE_SETTINGS);
-	}
-	
-	private void setSelfieRemainder(Frequency freq) {
-		// Get the AlarmManager Service
-		mAlarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-
-		// Create an Intent to broadcast to the AlarmNotificationReceiver
-		mNotificationReceiverIntent = new Intent(MainActivity.this, AlarmNotificationReceiver.class);
-		
-		// Create an PendingIntent that holds the NotificationReceiverIntent
-		mNotificationReceiverPendingIntent = PendingIntent.getBroadcast(MainActivity.this, 0, mNotificationReceiverIntent, 0);
-		
-		switch (freq) {
-			case DAILY: {
-
-				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
-						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
-						AlarmManager.INTERVAL_DAY,
-						mNotificationReceiverPendingIntent);
-				break;
-			}
-			case HOURLY: {
-				
-				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
-						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
-						AlarmManager.INTERVAL_HOUR,
-						mNotificationReceiverPendingIntent);
-				break;
-			}
-			case TEST_1_MIN: {
-				
-				mAlarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
-						SystemClock.elapsedRealtime() + INITIAL_ALARM_DELAY,
-						INTERVAL_ONE_MINUTE,
-						mNotificationReceiverPendingIntent);
-				break;
-			}
-			case OFF: {
-				
-				 // Cancel all alarms using mNotificationReceiverPendingIntent
-		    	 mAlarmManager.cancel(mNotificationReceiverPendingIntent);
-		    	 break;
-			}
-			default: {
-				Log.e(TAG, "Invalid frequency value: " + freq);
-				return;
-			}
-		}
-		
-		saveSettings(freq);
-	}
-	
-	// Load saved settings
-	private void loadSettings() {
-		
-		BufferedReader reader = null;
-		String freq = null;
-		
-		try {
-			FileInputStream fis = openFileInput(SETTINGS_FILE);
-			reader = new BufferedReader(new InputStreamReader(fis));
-
-			if (null != (freq = reader.readLine())) {
-				mSavedFrequency = Frequency.valueOf(freq);
-			} else {
-				mSavedFrequency = Frequency.OFF;
-			}
-			
-		} catch (FileNotFoundException e) {
-			mSavedFrequency = Frequency.OFF;
-			//e.printStackTrace();
-			Log.i(TAG, "loadSettings(), File not found, frequency set to OFF.");
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (null != reader) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	// Save settings to file
-	private void saveSettings(Frequency freq) {
-		Log.i(TAG, "Saving settings: " + freq.toString());
-		
-		PrintWriter writer = null;
-		try {
-			FileOutputStream fos = openFileOutput(SETTINGS_FILE, MODE_PRIVATE);
-			writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(fos)));
-			writer.println(freq.toString());
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (null != writer) {
-				writer.close();
-			}
-		}
-	}
-	
 	// http://developer.android.com/training/camera/photobasics.html#TaskCaptureIntent
 	private void dispatchTakePictureIntent() {
 		Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -250,9 +110,10 @@ public class MainActivity extends ActionBarActivity {
 	    	// Create the File where the photo should go
 	        File photoFile = null;
 	        try {
-	            photoFile = createImageFile();
+	            photoFile = ImageUtilities.createImageFile();
+	    	    mAbsolutePhotoPath = photoFile.getAbsolutePath();
 	        } catch (IOException ex) {
-	            // Error occurred while creating the File
+	            Log.e(TAG, "dispatchTakePictureIntent(): Error occured while creating the file.");
 	        }
 	        
 	        // Continue only if the File was successfully created
@@ -265,30 +126,9 @@ public class MainActivity extends ActionBarActivity {
 	    }
 	}
 	
-	// http://developer.android.com/training/camera/photobasics.html#TaskPath
-	@SuppressLint("SimpleDateFormat")
-	protected File createImageFile() throws IOException {
-		
-	    // Create an image file name
-	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-	    String imageFileName = "JPEG_" + timeStamp + "_";
-	    
-	    File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)+ File.separator + "DailySelfie" + File.separator);
-	    storageDir.mkdir();
-	    	    
-	    Log.i(TAG, "Path: " + storageDir.getAbsolutePath());
-	    File image = File.createTempFile(imageFileName,  ".jpg", storageDir);
-
-	    // Save a file: path for use with ACTION_VIEW intents
-	    mAbsolutePhotoPath = image.getAbsolutePath();
-	    
-	    return image;
-	}
-	
-	protected static boolean removeImageFile(String filePath) {
-		
-		File file = new File(filePath);
-		return file.delete();
+	private void openSettings() {
+		Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+		startActivity(settingsIntent);
 	}
 	
 	// http://developer.android.com/training/camera/photobasics.html#TaskPhotoView
@@ -307,110 +147,20 @@ public class MainActivity extends ActionBarActivity {
     		}
 	    	
 	    	if (mAdapter.getCount() == 0) {
-	    		loadItems();
+	    		mAdapter = ImageUtilities.loadItems(mAdapter, this);
 	    	}
 	    	
-	        Bitmap bitmap = setPic(mAbsolutePhotoPath); 
+	        Bitmap bitmap = ImageUtilities.setPic(mAbsolutePhotoPath); 
 	        ImageItem newItem = new ImageItem(mAbsolutePhotoPath, bitmap);
 	        
 	        mAdapter.add(newItem);
 	        
-	    } else if (requestCode == REQUEST_CHANGE_SETTINGS && resultCode == RESULT_OK) {
-	    	
-	    	Frequency freq = Frequency.valueOf(data.getStringExtra("freq"));
-	    	setSelfieRemainder(freq);
-	    	
 	    } else {
 	    	Log.i(TAG, "onActivityResult(), resultCode not RESULT_OK.");
 	    }
-	    
 	}
 	
-	// http://developer.android.com/training/camera/photobasics.html#TaskScalePhoto
-	private Bitmap setPic(String absolutePhotoPath) {
-	    // TODO: get the dimensions of the View
-	    int targetW = 80; //mImageView.getWidth();
-	    int targetH = 80; //mImageView.getHeight();
-	    Bitmap bitmap = null;
-	    
-	    // Get the dimensions of the bitmap
-	    BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-	    bmOptions.inJustDecodeBounds = true;
-	    BitmapFactory.decodeFile(absolutePhotoPath, bmOptions);
-	    
-	    int photoW = bmOptions.outWidth;
-	    int photoH = bmOptions.outHeight;
-
-	    // Determine how much to scale down the image
-	    int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
-
-	    // Decode the image file into a Bitmap sized to fill the View
-	    bmOptions.inJustDecodeBounds = false;
-	    bmOptions.inSampleSize = scaleFactor;
-	    //bmOptions.inBitmap TODO: figure out this line and why BM.decodeFile is called twice in this fun.
-
-	    if ((bitmap = BitmapFactory.decodeFile(absolutePhotoPath, bmOptions)) == null) {
-	    	Log.i(TAG, "File could not be decoded.");
-	    }
-	    
-	    return bitmap;
-	}
-	
-	// Another way doing it:
-	// http://stackoverflow.com/questions/5871482/serializing-and-de-serializing-android-graphics-bitmap-in-java
-	// Bitmaps are not serializable so the bitmap needs to be wrapped in a serializable class that
-	// converts the bitmap into a byte output stream.
-	
-   	// Load stored SelfieImages
-	private void loadItems() {
-		
-		BufferedReader reader = null;
-		String filePath = null;
-		
-		try {
-			FileInputStream fis = openFileInput(IMAGE_PATHS_FILE);
-			reader = new BufferedReader(new InputStreamReader(fis));
-
-			while (null != (filePath = reader.readLine())) {
-
-				mAdapter.add(new ImageItem(filePath, setPic(filePath)));
-			}
 			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (null != reader) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-	
-	// Save SelfieImages to file
-	private void saveItems() {
-		PrintWriter writer = null;
-		try {
-			FileOutputStream fos = openFileOutput(IMAGE_PATHS_FILE, MODE_PRIVATE);
-			writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(fos)));
-
-			for (int idx = 0; idx < mAdapter.getCount(); idx++) {
-				
-				writer.println(((ImageItem) mAdapter.getItem(idx)).getFilePath());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (null != writer) {
-				writer.close();
-			}
-		}
-	}
-		
 	//Based on: http://stackoverflow.com/questions/20524008/combining-listactivity-and-actionbaractivity
 	public static class ImageListFragment extends ListFragment {
 		
@@ -447,7 +197,7 @@ public class MainActivity extends ActionBarActivity {
         	Log.i(TAG, "Removing item from list: " + itemToRemove);
         	
         	//Delete the image file
-        	removeImageFile(((ImageItem) mAdapter.getItem(itemToRemove)).getFilePath());
+        	ImageUtilities.removeImageFile(((ImageItem) mAdapter.getItem(itemToRemove)).getFilePath());
         	//Remove the file from the adapter
         	mAdapter.removeItem(itemToRemove);
         }
@@ -460,7 +210,7 @@ public class MainActivity extends ActionBarActivity {
     		if (mAdapter.getCount() == 0) {
     			
     			Log.i(TAG, "onResume(). Load items in adapter: " + mAdapter.getCount());
-    			((MainActivity) getActivity()).loadItems();
+    			mAdapter = ImageUtilities.loadItems(mAdapter, (MainActivity) getActivity());
     		}
     	}
 
@@ -469,7 +219,7 @@ public class MainActivity extends ActionBarActivity {
     		super.onPause();
 
     		Log.i(TAG, "onPause(). Save items in adapter: " + mAdapter.getCount());
-    		((MainActivity) getActivity()).saveItems();
+    		ImageUtilities.saveItems(mAdapter, (MainActivity) getActivity());
     	}
     	
     	@Override
@@ -479,8 +229,7 @@ public class MainActivity extends ActionBarActivity {
     		Log.i(TAG, "Image item selected: " + filePath);
     		
     		Intent intentOpenLargeImage = new Intent(getActivity(), LargeImageActivity.class);
-    		intentOpenLargeImage.putExtra("savedFilePath", IMAGE_PATHS_FILE);
-    		intentOpenLargeImage.putExtra("imgPosition", position);
+    		intentOpenLargeImage.putExtra(IMAGE_POSITION, position);
     		startActivity(intentOpenLargeImage);
     	}
     }	
